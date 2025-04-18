@@ -165,8 +165,18 @@ class ChatScreen extends StatefulWidget {
 class _ChatScreenState extends State<ChatScreen> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final TextEditingController _messageController = TextEditingController();
+  CollectionReference users = FirebaseFirestore.instance.collection('users');
+  User? user = FirebaseAuth.instance.currentUser;
+
+
+  
+
 
   void _sendMessage() async {
+
+    QuerySnapshot snapshot = await users.where('email', isEqualTo: user?.email).get();
+    var userDoc = snapshot.docs.first;
+    String name =  userDoc['firstName'] + " " + userDoc['lastName'];
     if (_messageController.text.isNotEmpty) {
       User? user = _auth.currentUser;
       if (user != null) {
@@ -175,7 +185,7 @@ class _ChatScreenState extends State<ChatScreen> {
             .doc(widget.boardId)
             .collection('messages')
             .add({
-          'username': user.email,
+          'username': name,
           'text': _messageController.text,
           'timestamp': FieldValue.serverTimestamp(),
         });
