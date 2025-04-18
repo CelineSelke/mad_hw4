@@ -217,11 +217,22 @@ class _ChatScreenState extends State<ChatScreen> {
                   itemCount: messages.length,
                   itemBuilder: (context, index) {
                     var message = messages[index];
+
+                    if(message['timestamp'] == null){
+                      return ListTile(
+                      title: Text("..."),
+                      subtitle: Text("..."),
+                      trailing: Text("..."),
+                    );
+                    }
+                    else{
+
                     return ListTile(
                       title: Text(message['username']),
                       subtitle: Text(message['text']),
                       trailing: Text(message['timestamp'].toDate().toString()),
                     );
+                    }
                   },
                 );
               },
