@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'firebase_options.dart'; // Make sure this is generated during Firebase setup.
+import 'firebase_options.dart'; 
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -46,7 +46,7 @@ class SplashScreen extends StatelessWidget {
       backgroundColor: Colors.blue,
       body: Center(
         child: Text(
-          "My Firebase App",
+          "Welcome to Mogus Messenger",
           style: TextStyle(
             fontSize: 30,
             fontWeight: FontWeight.bold,
@@ -112,6 +112,7 @@ class HomePage extends StatelessWidget {
               return MessageBoardCard(
                 name: board['name'],
                 image: board['image'],
+                description: board['description'],
                 boardId: board.id,
               );
             },
@@ -125,9 +126,10 @@ class HomePage extends StatelessWidget {
 class MessageBoardCard extends StatelessWidget {
   final String name;
   final String image;
+  final String description;
   final String boardId;
 
-  MessageBoardCard({required this.name, required this.image, required this.boardId});
+  MessageBoardCard({required this.name, required this.image, required this.description, required this.boardId});
 
   @override
   Widget build(BuildContext context) {
@@ -135,6 +137,7 @@ class MessageBoardCard extends StatelessWidget {
       child: ListTile(
         leading: Image.network(image),
         title: Text(name),
+        subtitle: Text(description),
         onTap: () {
           // Navigate to chat screen with the boardId
           Navigator.push(
