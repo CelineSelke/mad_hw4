@@ -4,123 +4,373 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'firebase_options.dart';
 
-void main() {
-  runApp(const MyApp());
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
+
+  runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  const MyApp({super.key});
-
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      title: 'Flutter Demo',
-      theme: ThemeData(
-        // This is the theme of your application.
-        //
-        // TRY THIS: Try running your application with "flutter run". You'll see
-        // the application has a purple toolbar. Then, without quitting the app,
-        // try changing the seedColor in the colorScheme below to Colors.green
-        // and then invoke "hot reload" (save your changes or press the "hot
-        // reload" button in a Flutter-supported IDE, or press "r" if you used
-        // the command line to start the app).
-        //
-        // Notice that the counter didn't reset back to zero; the application
-        // state is not lost during the reload. To reset the state, use hot
-        // restart instead.
-        //
-        // This works for code too, not just values: Most code changes can be
-        // tested with just a hot reload.
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
-      ),
-      home: const MyHomePage(title: 'Flutter Demo Home Page'),
+      title: '',
+      home: MyHomePage(title: ''),
     );
   }
 }
 
 class MyHomePage extends StatefulWidget {
-  const MyHomePage({super.key, required this.title});
-
-  // This widget is the home page of your application. It is stateful, meaning
-  // that it has a State object (defined below) that contains fields that affect
-  // how it looks.
-
-  // This class is the configuration for the state. It holds the values (in this
-  // case the title) provided by the parent (in this case the App widget) and
-  // used by the build method of the State. Fields in a Widget subclass are
-  // always marked "final".
-
+  MyHomePage({Key? key, required this.title}) : super(key: key);
   final String title;
 
   @override
-  State<MyHomePage> createState() => _MyHomePageState();
+  _MyHomePageState createState() => _MyHomePageState();
 }
 
 class _MyHomePageState extends State<MyHomePage> {
-  int _counter = 0;
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
+  void _signOut() async {
+    await _auth.signOut();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Signed out successfully'),
+    ));
   }
 
   @override
   Widget build(BuildContext context) {
-    // This method is rerun every time setState is called, for instance as done
-    // by the _incrementCounter method above.
-    //
-    // The Flutter framework has been optimized to make rerunning build methods
-    // fast, so that you can just rebuild anything that needs updating rather
-    // than having to individually change instances of widgets.
     return Scaffold(
       appBar: AppBar(
-        // TRY THIS: Try changing the color here to a specific color (to
-        // Colors.amber, perhaps?) and trigger a hot reload to see the AppBar
-        // change color while the other colors stay the same.
-        backgroundColor: Theme.of(context).colorScheme.inversePrimary,
-        // Here we take the value from the MyHomePage object that was created by
-        // the App.build method, and use it to set our appbar title.
         title: Text(widget.title),
+        actions: <Widget>[
+          ElevatedButton(
+            onPressed: () {
+              _signOut();
+            },
+            child: Text('Sign Out'),
+          ),
+        ],
       ),
       body: Center(
-        // Center is a layout widget. It takes a single child and positions it
-        // in the middle of the parent.
         child: Column(
-          // Column is also a layout widget. It takes a list of children and
-          // arranges them vertically. By default, it sizes itself to fit its
-          // children horizontally, and tries to be as tall as its parent.
-          //
-          // Column has various properties to control how it sizes itself and
-          // how it positions its children. Here we use mainAxisAlignment to
-          // center the children vertically; the main axis here is the vertical
-          // axis because Columns are vertical (the cross axis would be
-          // horizontal).
-          //
-          // TRY THIS: Invoke "debug painting" (choose the "Toggle Debug Paint"
-          // action in the IDE, or press "p" in the console), to see the
-          // wireframe for each widget.
           mainAxisAlignment: MainAxisAlignment.center,
           children: <Widget>[
-            const Text('You have pushed the button this many times:'),
-            Text(
-              '$_counter',
-              style: Theme.of(context).textTheme.headlineMedium,
-            ),
+            RegisterEmailSection(auth: _auth),
+            EmailPasswordForm(auth: _auth),
+            SizedBox(height: 20),
+            ElevatedButton(onPressed:() => Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => ProfileScreen(title: "Profile Screen")),
+              ), child: Text("Profile Screen"))
           ],
         ),
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: _incrementCounter,
-        tooltip: 'Increment',
-        child: const Icon(Icons.add),
-      ), // This trailing comma makes auto-formatting nicer for build methods.
+    );
+  }
+}
+
+class RegisterEmailSection extends StatefulWidget {
+  RegisterEmailSection({Key? key, required this.auth}) : super(key: key);
+  final FirebaseAuth auth;
+
+  @override
+  _RegisterEmailSectionState createState() => _RegisterEmailSectionState();
+}
+
+class _RegisterEmailSectionState extends State<RegisterEmailSection> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  final emailRegex = RegExp(r'^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$');
+  bool _success = false;
+  bool _initialState = true;
+  String? _userEmail;
+
+  void _register() async {
+    try {
+      await widget.auth.createUserWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      setState(() {
+        _success = true;
+        _userEmail = _emailController.text;
+        _initialState = false;
+      });
+    } catch (e) {
+      setState(() {
+        _success = false;
+        _initialState = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          TextFormField(
+            controller: _emailController,
+            decoration: InputDecoration(labelText: 'Email'),
+            validator: (value) {
+              if (value == null || value.isEmpty) {
+                return 'Please enter some text';
+              }
+              else if (!emailRegex.hasMatch(value)) {
+                return 'Please enter a valid email';
+              }
+              return null;
+              },
+          ),
+          TextFormField(
+            controller: _passwordController,
+            decoration: InputDecoration(labelText: 'Password'),
+            validator: (value) {
+              if(value == null || value.isEmpty) {
+                return 'Please enter some text';
+              }
+              else if (value.length < 6) {
+                return 'Please enter at least 6 characters';
+              }
+              return null;
+            },
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            alignment: Alignment.center,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _register();
+                }
+              },
+              child: Text('Submit'),
+            ),
+          ),
+          Container(
+            alignment: Alignment.center,
+            child: Text(
+              _initialState
+                  ? 'Please Register'
+              : _success
+                  ? 'Successfully registered $_userEmail'
+                  : 'Registration failed',
+              style: TextStyle(color: _success ? Colors.green : Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class EmailPasswordForm extends StatefulWidget {
+  EmailPasswordForm({Key? key, required this.auth}) : super(key: key);
+  final FirebaseAuth auth;
+
+  @override
+  _EmailPasswordFormState createState() => _EmailPasswordFormState();
+}
+
+class _EmailPasswordFormState extends State<EmailPasswordForm> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _emailController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
+  bool _success = false;
+  bool _initialState = true;
+  String _userEmail ='';
+
+  void _signInWithEmailAndPassword() async {
+    try {
+      await widget.auth.signInWithEmailAndPassword(
+        email: _emailController.text,
+        password: _passwordController.text,
+      );
+      setState(() {
+        _success = true;
+        _userEmail = _emailController.text;
+        _initialState = false;
+      });
+    } catch (e) {
+      setState(() {
+        _success = false;
+        _initialState = false;
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: <Widget>[
+          Container(
+            child: Text('Test sign in with email and password'),
+            padding: const EdgeInsets.all(16),
+            alignment: Alignment.center,
+          ),
+          TextFormField(
+            controller: _emailController,
+            decoration: InputDecoration(labelText: 'Email'),
+            validator: (value) {
+              if (value?.isEmpty??true) {
+                return 'Please enter some text';
+              }
+              return null;
+            },
+          ),
+          TextFormField(
+            controller: _passwordController,
+            decoration: InputDecoration(labelText: 'Password'),
+            validator: (value) {
+              if (value?.isEmpty??true) {
+                return 'Please enter some text';
+              }
+              return null;
+            },
+          ),
+          Container(
+            padding: const EdgeInsets.symmetric(vertical: 16.0),
+            alignment: Alignment.center,
+            child: ElevatedButton(
+              onPressed: () {
+                if (_formKey.currentState!.validate()) {
+                  _signInWithEmailAndPassword();
+                }
+              },
+              child: Text('Submit'),
+            ),
+          ),
+          Container(
+            alignment: Alignment.center,
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              _initialState
+                  ? 'Please sign in'
+                  : _success
+                  ? 'Successfully signed in $_userEmail'
+                  : 'Sign in failed',
+              style: TextStyle(color: _success ? Colors.green : Colors.red),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ProfileScreen extends StatefulWidget {
+  ProfileScreen({Key? key, required this.title}) : super(key: key);
+  final String title;
+
+  @override
+  _ProfileScreenState createState() => _ProfileScreenState();
+}
+
+class _ProfileScreenState extends State<ProfileScreen> {
+  final FirebaseAuth _auth = FirebaseAuth.instance;
+  final TextEditingController _passwordController = TextEditingController();
+  String? email = "Not Signed In";
+
+  @override
+  void initState() {
+    super.initState();
+    User? user = _auth.currentUser;
+    if (user != null) {
+      email = user.email;
+    }
+  }
+
+  void _changePassword() async {
+    User? user = _auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No user is signed in.')),
+      );
+      return;
+    }
+
+    if(_passwordController.text.length >= 6) {
+      try {
+        await user.updatePassword(_passwordController.text);
+        _passwordController.clear();
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Password changed successfully.')),
+        );
+      } catch (error) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error changing password: $error')),
+        );
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Please make password 6 characters or greater')),
+      );
+    }
+  }
+
+  void _signOut() async {
+    User? user = _auth.currentUser;
+    if (user == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('No user is signed in.')),
+      );
+      return;
+    }
+
+    await _auth.signOut();
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
+      content: Text('Signed out successfully'),
+    ));
+    Navigator.pop(context);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text(widget.title),
+        actions: <Widget>[
+          ElevatedButton(
+            onPressed: () {
+              _signOut();
+            },
+            child: Text('Sign Out'),
+          ),
+        ],
+      ),
+      body: Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: <Widget>[
+            Text("Profile Email:"),
+            Text("$email"),
+            SizedBox(height: 25), 
+            Text("Change Password: "),
+            TextFormField(
+              controller: _passwordController,
+              decoration: InputDecoration(labelText: 'Password'),
+              validator: (value) {
+                if(value?.isEmpty??true) {
+                  return 'Please enter some text';
+                }
+                return null;
+              },
+            ),
+            SizedBox(height: 15), 
+            ElevatedButton(onPressed: _changePassword, child: Text("Change Password"))
+          ],
+        ),
+      ),
     );
   }
 }
