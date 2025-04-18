@@ -46,12 +46,14 @@ class SplashScreen extends StatelessWidget {
       backgroundColor: Colors.blue,
       body: Center(
         child: Text(
-          "Welcome to Mogus Messenger",
+          "Welcome to Mogus Messenger", 
           style: TextStyle(
             fontSize: 30,
             fontWeight: FontWeight.bold,
-            color: Colors.white,
+            color: Colors.white, 
+            
           ),
+          textAlign: TextAlign.center,
         ),
       ),
     );
